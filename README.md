@@ -10,6 +10,3 @@ If you're interested in learning more about DDPM and its applications, you can r
 - Jascha Sohl-Dickstein, Eric A. Weiss, Niru Maheswaranathan and Surya Ganguli. Deep Unsupervised Learning using Nonequilibrium Thermodynamics, arXiv:1503.03585, 2015.
 - Jonathan Ho, Ajay Jain and Pieter Abbeel. Denoising Diffusion Probabilistic Models, arXiv:2006.11239, 2020.
 - Alex Nichol and Prafulla Dhariwal. Improved Denoising Diffusion Probabilistic Models, arXiv:2102.09672, 2021.
-
-
-Author: Mateusz Kunik
