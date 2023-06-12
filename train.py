@@ -10,30 +10,22 @@ class DDPM():
     """
     The DDPM class is an implementation of the Denoising Diffusion Probabilistic Model.
     """
-    def __init__(self, noise_steps=1000, beta_start=1e-4, beta_end=0.02, image_size=256, image_channels=3, device="cuda"):
+    def __init__(self, scheduler, noise_steps=1000, image_size=256, image_channels=3, device="cuda"):
         super().__init__()
         
         # The hyperparameters initialization.
+        self.scheduler = scheduler
         self.noise_steps = noise_steps
-        self.beta_start = beta_start
-        self.beta_end = beta_end
         self.image_size = image_size
         self.image_channels = image_channels
         self.device = device
 
         # The beta tensor contains noise amounts that are applied at every timestep of the diffusion process.
-        self.beta = self.noise_schedule().to(device)
+        self.beta = self.scheduler.get_beta()
         # The alpha tensor contains amounts of image information that are preserved after every timestep of the process.
-        self.alpha = 1. - self.beta
-        self.alpha_hat = torch.cumprod(self.alpha, dim=0)
+        self.alpha = self.scheduler.get_alpha()
+        self.alpha_hat = self.scheduler.get_alpha_hat()
         self.alpha_hat_prev = torch.from_numpy(np.append(1.0, self.alpha_hat[:-1].cpu())).to(device=self.device).float()
-
-
-    def noise_schedule(self):
-        """
-        This function prepares the noise schedule for the forward diffusion process.
-        """
-        return torch.linspace(self.beta_start, self.beta_end, self.noise_steps)
     
 
     def sample_timesteps(self, n):
@@ -107,9 +99,9 @@ class DDPM():
         return x
 
 
-def train_fn(model, diffusion, loader, optimizer, loss_fn, num_epochs, device, scheduler=None, sampling=True):
+def train_fn(model, diffusion, loader, optimizer, loss_fn, num_epochs, device, sampling=True):
     """
-    
+    This function performs a training with diffusion model trying to learn on loader.
     """
 
     time = datetime.now().strftime("%Y%m%d%H%M")
@@ -140,17 +132,15 @@ def train_fn(model, diffusion, loader, optimizer, loss_fn, num_epochs, device, s
             loss.backward()
             optimizer.step()
 
-        if scheduler:
-            scheduler.step()
 
         # Calculate and save average loss
         train_loss /= len(loader)
         loss_history.append(train_loss)
         print(f"Train loss: {train_loss:.4f}\n")
 
-        if sampling and ((epoch % (num_epochs // 10) == 0) or (epoch + 1 == num_epochs)):
-            sampled_images = diffusion.sample(model, images.shape[0])
-            plot_images(sampled_images)
+        sampled_images = diffusion.sample(model, images.shape[0])
+        plot_images(sampled_images)
+
 
     # Saving model and optimizer state.
     checkpoint = {
