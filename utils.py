@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torchvision
 import matplotlib.pyplot as plt
@@ -12,6 +13,14 @@ def load_checkpoint(checkpoint, model):
     print("=> Loading checkpoint")
     model.load_state_dict(checkpoint["state_dict"])
 
+def imshow(image):
+    image = image / 2 + 0.5
+    image = image.numpy()
+    
+    plt.imshow(np.transpose(image, (1, 2, 0)), cmap = "gray")
+    plt.axis(False)
+    plt.show()
+    
 def plot_images(images, cmap=None):
     plt.figure(figsize=(32, 32))
     plt.imshow(torch.cat([
