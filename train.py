@@ -10,12 +10,12 @@ class DDPM():
     """
     The DDPM class is an implementation of the Denoising Diffusion Probabilistic Model.
     """
-    def __init__(self, scheduler, noise_steps=1000, image_size=256, image_channels=3, device="cuda"):
+    def __init__(self, scheduler, image_size=256, image_channels=3, device="cuda"):
         super().__init__()
         
         # The hyperparameters initialization.
         self.scheduler = scheduler
-        self.noise_steps = noise_steps
+        self.noise_steps = scheduler.noise_steps
         self.image_size = image_size
         self.image_channels = image_channels
         self.device = device
@@ -99,7 +99,7 @@ class DDPM():
         return x
 
 
-def train_fn(model, diffusion, loader, optimizer, loss_fn, num_epochs, device, sampling=True):
+def train_fn(model, diffusion, loader, optimizer, loss_fn, scheduler=None, sampling=True, num_epochs=60, device="cuda"):
     """
     This function performs a training with diffusion model trying to learn on loader.
     """
@@ -107,6 +107,7 @@ def train_fn(model, diffusion, loader, optimizer, loss_fn, num_epochs, device, s
     time = datetime.now().strftime("%Y%m%d%H%M")
     train_loss = 0.0
     loss_history = []
+    learning_rates = []
 
     # Put the model into training mode
     model.train()
@@ -133,13 +134,23 @@ def train_fn(model, diffusion, loader, optimizer, loss_fn, num_epochs, device, s
             optimizer.step()
 
 
+        # Learning rate scheduler step
+        if scheduler is not None:
+            learning_rates.append(optimizer.param_groups[0]["lr"])
+            scheduler.step()
+
         # Calculate and save average loss
         train_loss /= len(loader)
         loss_history.append(train_loss)
         print(f"Train loss: {train_loss:.4f}\n")
 
-        sampled_images = diffusion.sample(model, images.shape[0])
-        plot_images(sampled_images)
+        # Sampling procedure
+        if sampling:
+            sampled_images = diffusion.sample(model, 8)
+            if images.shape[1] == 1:
+                plot_images(sampled_images, cmap="gray")
+            else:
+                plot_images(sampled_images)
 
 
     # Saving model and optimizer state.
@@ -149,4 +160,4 @@ def train_fn(model, diffusion, loader, optimizer, loss_fn, num_epochs, device, s
 
     save_checkpoint(checkpoint, filename=f"checkpoint_{time}.pth.tar")
 
-    return loss_history
+    return loss_history, learning_rates
